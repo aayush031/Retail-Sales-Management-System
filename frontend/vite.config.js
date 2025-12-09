@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/api": "http://localhost:5000",
+      "/api": "https://retail-sales-management-system-1-qvxh.onrender.com",
     },
   },
 });
