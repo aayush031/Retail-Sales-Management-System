@@ -13,17 +13,26 @@ const mongoose = require("mongoose");
 const csv = require("csv-parser");
 const Sales = require("../models/Sales");
 
+// Load environment variables so the importer uses the same connection string as the server
+require("dotenv").config();
+
 // Configuration
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/retail_sales";
+// Default matches the API server fallback to avoid importing into a different DB
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb+srv://test:0f8pNzjFItIFRJ8O@test.n8vably.mongodb.net/retail_sales?retryWrites=true&w=majority";
 const BATCH_SIZE = parseInt(process.env.BATCH_SIZE) || 5000;
-const CSV_FILE_NAME = "truestate_assignment_dataset.csv";
+
+// Allow overriding CSV path via env; default to project root CSV
+const CSV_FILE_PATH =
+  process.env.CSV_FILE_PATH ||
+  path.join(process.cwd(), "truestate_assignment_dataset.csv");
 
 // State tracking
 const batch = [];
 let totalProcessed = 0;
 let totalInserted = 0;
 let totalErrors = 0;
-const filePath = path.join(__dirname, CSV_FILE_NAME);
 
 /**
  * Establishes MongoDB connection
@@ -126,19 +135,22 @@ function transformCsvRow(csvRow) {
 async function executeImport() {
   await connectToDatabase();
 
-  if (!fs.existsSync(filePath)) {
-    console.error(`CSV file not found: ${filePath}`);
+  if (!fs.existsSync(CSV_FILE_PATH)) {
+    console.error(`CSV file not found at: ${CSV_FILE_PATH}`);
+    console.error(
+      "Set CSV_FILE_PATH env var to the full path of your CSV (e.g., C:\\data\\truestate_assignment_dataset.csv)"
+    );
     await mongoose.disconnect();
     process.exit(1);
   }
 
   console.log("Starting CSV import process...");
-  console.log(`Source file: ${filePath}`);
+  console.log(`Source file: ${CSV_FILE_PATH}`);
   console.log(`Batch size: ${BATCH_SIZE} records\n`);
 
   const startTime = Date.now();
 
-  fs.createReadStream(filePath)
+  fs.createReadStream(CSV_FILE_PATH)
     .pipe(csv())
     .on("data", async (csvRow) => {
       const record = transformCsvRow(csvRow);

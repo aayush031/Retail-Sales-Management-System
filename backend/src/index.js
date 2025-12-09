@@ -3,63 +3,55 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const salesRoutes = require("./routes/salesRoutes");
 
+require("dotenv").config(); // To load environment variables
+
 const app = express();
 
-// Configuration constants
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/retail_sales";
+// MongoDB Connection String (Secure using .env)
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb+srv://test:0f8pNzjFItIFRJ8O@test.n8vably.mongodb.net/retail_sales?retryWrites=true&w=majority";
+
 const PORT = process.env.PORT || 5000;
 
-// Middleware configuration
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true })); 
 
-// Database connection with error handling
+// Connect to MongoDB
 mongoose
-  .connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("MongoDB connection established successfully");
-  })
-  .catch((error) => {
-    console.error("MongoDB connection failed:", error.message);
+  .connect(MONGODB_URI)
+  .then(() => console.log("MongoDB Connected Successfully"))
+  .catch((err) => {
+    console.error("MongoDB Connection Error:", err.message);
     process.exit(1);
   });
 
-// API route registration
+// Routes
 app.use("/api/sales", salesRoutes);
 
-// Health check endpoint
+// Test Route
 app.get("/", (req, res) => {
   res.json({
-    status: "operational",
-    service: "Retail Sales Management System API",
-    timestamp: new Date().toISOString(),
+    message: "Retail Sales API Running...",
+    status: "success",
+    time: new Date().toISOString(),
   });
 });
 
-// Global error handling middleware
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error("Application error:", err.stack);
-  res.status(err.status || 500).json({
-    error: err.message || "An unexpected error occurred",
-    status: "error",
-  });
+  console.error("Error:", err.stack);
+  res.status(500).json({ error: err.message || "Internal Server Error" });
 });
 
-// 404 handler for undefined routes
+// 404 Handler
 app.use((req, res) => {
-  res.status(404).json({
-    error: "Endpoint not found",
-    path: req.path,
-    status: "error",
-  });
+  res.status(404).json({ error: "Route not found", path: req.path });
 });
 
-// Server initialization
+// Start Server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`API available at http://localhost:${PORT}/api/sales`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
